@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{% if mode=='signin' %}Sign In{% else %}Create Account{% endif %} | SHLOKA{% endblock %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">S<span>hloka</span></div>
+    <div class="auth-sub">{% if mode=='signin' %}Welcome back. Continue your journey.{% else %}Begin your shloka journey today.{% endif %}</div>
+    <form method="post">
+      {% if mode=='signup' %}
+      <div class="form-group">
+        <label class="form-label">Your Name</label>
+        <input class="form-input" type="text" name="name" placeholder="Sreekar" required>
+      </div>
+      {% endif %}
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" name="email" placeholder="you@example.com" required value="{{ request.form.get('email','') }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" name="password" placeholder="{% if mode=='signup' %}At least 6 characters{% else %}Password{% endif %}" required>
+      </div>
+      {% if mode=='signup' %}
+      <div class="form-group">
+        <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--t3);cursor:pointer;">
+          <input type="checkbox" required style="margin-top:2px;">
+          I agree to the Terms of Service
+        </label>
+      </div>
+      {% endif %}
+      <button type="submit" class="btn btn-primary btn-full" style="padding:12px;">
+        {% if mode=='signin' %}Sign In{% else %}Create Account{% endif %}
+      </button>
+    </form>
+    <div class="auth-divider">or</div>
+    <div class="auth-link">
+      {% if mode=='signin' %}
+        No account? <a href="{{ url_for('signup') }}">Sign up free</a>
+      {% else %}
+        Already have one? <a href="{{ url_for('signin') }}">Sign in</a>
+      {% endif %}
+    </div>
+    {% if mode=='signin' %}
+    <div class="auth-hint">
+      <strong>Demo accounts:</strong><br>
+      Creator: <code>admin@shloka.app</code> / <code>admin123</code><br>
+      Learner: <code>demo@shloka.app</code> / <code>demo123</code>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

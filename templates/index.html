@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}SHLOKA — Ancient words. Timeless practice.{% endblock %}
+
+{% block content %}
+
+<div class="hero">
+  <div class="hero-om">&#2384;</div>
+  <h1>S<span>hloka</span></h1>
+  <p class="hero-tag">Ancient words. Timeless practice.</p>
+  <div class="hero-search">
+    <span class="hero-si">&#9906;</span>
+    <form action="{{ url_for('search') }}" method="get">
+      <input type="text" name="q" placeholder="Search by shloka, chapter, or scripture..." autocomplete="off">
+    </form>
+  </div>
+  <div class="hero-btns">
+    {% if categories %}
+    <a href="{{ url_for('category', slug=categories[0].slug) }}" class="btn btn-primary btn-lg">Start Learning</a>
+    {% endif %}
+    <a href="{{ url_for('search', q='') }}" class="btn btn-ghost btn-lg">Browse All Shlokas</a>
+  </div>
+</div>
+
+{% if featured %}
+<div class="featured">
+  <div class="featured-inner">
+    <a href="{{ url_for('watch', slug=featured.slug) }}" class="featured-video">
+      <div class="featured-video-bg" style="background:linear-gradient(135deg,#0A1520,{{ featured.category.color_bg if featured.category else '#0A0A09' }});">
+        <div class="fvt">{{ featured.sanskrit_text.split('\n')[0] }}</div>
+      </div>
+      <div class="featured-play-ov">
+        <div class="featured-play">&#9654;</div>
+      </div>
+    </a>
+    <div>
+      <div class="feat-badge">Featured Today</div>
+      {% if featured.category %}
+      <div style="margin-bottom:10px;">
+        <span class="chip" style="background:{{ featured.category.color_bg }};color:{{ featured.category.color_accent }};">
+          {{ featured.category.icon }} {{ featured.category.name }}
+        </span>
+      </div>
+      {% endif %}
+      <div class="feat-title">{{ featured.title }}</div>
+      <div class="feat-san">{{ featured.sanskrit_text.split('\n')[0] }}</div>
+      <div class="feat-en">{{ (featured.translation_english or '')[:160] }}...</div>
+      <a href="{{ url_for('watch', slug=featured.slug) }}" class="btn btn-primary">&#9654; Watch Now</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="section">
+  <div class="section-title">Browse by Scripture</div>
+  <div class="section-sub">{{ categories|length }} scriptures to explore</div>
+  <div class="cat-grid">
+    {% for cat in categories %}
+    <a href="{{ url_for('category', slug=cat.slug) }}" class="cat-card">
+      <div class="cat-bar" style="background:{{ cat.color_accent }};"></div>
+      <span class="cat-icon">{{ cat.icon }}</span>
+      <div class="cat-name">{{ cat.name }}</div>
+      <div class="cat-desc">{{ (cat.description or '')[:100] }}</div>
+      <div class="cat-count" style="color:{{ cat.color_accent }};">{{ cat.total_shlokas }} Shlokas</div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if recent %}
+<div class="section" style="padding-top:0;">
+  <div class="section-title">Recently Published</div>
+  <div class="section-sub">Fresh wisdom added to the library</div>
+  <div class="shloka-row">
+    {% for s in recent %}{% include "_shloka_card.html" %}{% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if popular %}
+<div class="section" style="padding-top:0;">
+  <div class="section-title">Most Watched</div>
+  <div class="section-sub">Beloved by learners</div>
+  <div class="shloka-row">
+    {% for s in popular %}{% include "_shloka_card.html" %}{% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if current_user.is_authenticated %}
+<div class="prog-banner">
+  <div style="flex:1;">
+    <h3>Continue your journey</h3>
+    <p>Keep the practice alive — one shloka at a time.</p>
+  </div>
+  <a href="{{ url_for('profile') }}" class="btn btn-ghost">View My Progress</a>
+  {% if featured %}
+  <a href="{{ url_for('watch', slug=featured.slug) }}" class="btn btn-primary">&#9654; Continue</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

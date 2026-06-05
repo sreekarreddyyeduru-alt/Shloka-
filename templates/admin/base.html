@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="admin-layout">
+  <div class="admin-sidebar">
+    <div class="admin-sidebar-label">Overview</div>
+    <a href="{{ url_for('admin_dashboard') }}" class="admin-nav-btn {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">Dashboard</a>
+    <a href="{{ url_for('admin_shlokas') }}"   class="admin-nav-btn {% if request.endpoint in ['admin_shlokas','admin_edit'] %}active{% endif %}">All Shlokas</a>
+    <a href="{{ url_for('admin_upload') }}"    class="admin-nav-btn {% if request.endpoint == 'admin_upload' %}active{% endif %}">Upload New</a>
+    <div class="admin-sidebar-label">Content</div>
+    <a href="{{ url_for('admin_categories') }}" class="admin-nav-btn {% if request.endpoint == 'admin_categories' %}active{% endif %}">Scriptures</a>
+    <div class="admin-sidebar-label" style="margin-top:auto;"></div>
+    <a href="{{ url_for('index') }}" class="admin-nav-btn">Back to Site</a>
+  </div>
+  <div class="admin-main">{% block admin_content %}{% endblock %}</div>
+</div>
+{% endblock %}

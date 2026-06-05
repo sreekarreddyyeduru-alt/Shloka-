@@ -1,0 +1,97 @@
+{% extends "admin/base.html" %}
+{% block title %}Creator Dashboard | SHLOKA{% endblock %}
+
+{% block admin_content %}
+<div class="admin-title">Creator Dashboard</div>
+<div class="admin-sub">Welcome back, {{ current_user.display_name }}.</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Published</div>
+    <div class="stat-value">{{ pub }}</div>
+    <div class="stat-note">{{ total - pub }} drafts</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Views</div>
+    <div class="stat-value">{{ "{:,}".format(views) }}</div>
+    <div class="stat-note">across all shlokas</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Comments</div>
+    <div class="stat-value">{{ comms }}</div>
+    <div class="stat-note">from learners</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Learners</div>
+    <div class="stat-value">{{ users }}</div>
+    <div class="stat-note">registered</div>
+  </div>
+</div>
+
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r12);padding:22px;margin-bottom:22px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+    <div style="font-size:13px;font-weight:600;">Views by Shloka</div>
+    <a href="{{ url_for('admin_upload') }}" class="btn btn-primary btn-sm">+ Upload New</a>
+  </div>
+  {% if top %}
+  {% set max_v = top[0].view_count if top[0].view_count > 0 else 1 %}
+  {% for s in top %}
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:12px;color:var(--t2);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--font-d);">{{ s.title }}</div>
+      <div class="prog-bar-bg" style="height:6px;"><div class="prog-bar-fill" style="background:var(--brand);height:6px;width:{{ ((s.view_count / max_v) * 100)|int }}%;"></div></div>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:var(--brand);min-width:28px;text-align:right;">{{ s.view_count }}</div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p style="text-align:center;padding:24px;color:var(--t3);font-size:13px;">No published shlokas yet. <a href="{{ url_for('admin_upload') }}" style="color:var(--brand);">Upload one</a></p>
+  {% endif %}
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r12);overflow:hidden;">
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:13px;font-weight:600;">Recent Uploads</span>
+      <a href="{{ url_for('admin_shlokas') }}" style="font-size:12px;color:var(--brand);">View all</a>
+    </div>
+    {% for s in recent %}
+    <div style="display:flex;align-items:center;gap:12px;padding:11px 20px;border-bottom:1px solid var(--border);">
+      <div style="width:6px;height:6px;border-radius:50%;background:{% if s.is_published %}var(--ok){% else %}var(--t3){% endif %};flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-family:var(--font-d);font-size:14px;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.title }}</div>
+        <div style="font-size:11px;color:var(--t3);">{{ s.created_at.strftime('%b %d, %Y') }}</div>
+      </div>
+      <a href="{{ url_for('admin_edit', sid=s.id) }}" style="font-size:11px;color:var(--t3);padding:3px 8px;border:1px solid var(--border2);border-radius:4px;">Edit</a>
+    </div>
+    {% endfor %}
+    {% if not recent %}<p style="padding:20px;text-align:center;color:var(--t3);font-size:13px;">No shlokas yet.</p>{% endif %}
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r12);padding:20px;">
+      <div style="font-size:13px;font-weight:600;margin-bottom:14px;">Quick Actions</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <a href="{{ url_for('admin_upload') }}"     class="btn btn-primary btn-full">Upload New Shloka</a>
+        <a href="{{ url_for('admin_categories') }}" class="btn btn-ghost btn-full">Manage Scriptures</a>
+        <a href="{{ url_for('admin_shlokas') }}"    class="btn btn-ghost btn-full">All {{ total }} Shlokas</a>
+        <a href="{{ url_for('index') }}" target="_blank" class="btn btn-ghost btn-full">View Live Site</a>
+      </div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r12);overflow:hidden;flex:1;">
+      <div style="padding:14px 20px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;">Recent Comments</div>
+      {% for c in r_comms %}
+      <div style="padding:11px 20px;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <div style="width:22px;height:22px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--t2);">{{ c.author.get_initials() }}</div>
+          <span style="font-size:12px;font-weight:600;color:var(--t1);">{{ c.author.display_name or c.author.username }}</span>
+          <span style="font-size:11px;color:var(--t3);">on {{ c.shloka.title[:24] }}...</span>
+        </div>
+        <div style="font-size:12px;color:var(--t2);line-height:1.5;margin-left:30px;">{{ c.content[:70] }}{% if c.content|length > 70 %}...{% endif %}</div>
+      </div>
+      {% endfor %}
+      {% if not r_comms %}<p style="padding:20px;text-align:center;color:var(--t3);font-size:13px;">No comments yet.</p>{% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

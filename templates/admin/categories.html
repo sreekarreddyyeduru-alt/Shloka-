@@ -1,0 +1,58 @@
+{% extends "admin/base.html" %}
+{% block title %}Scriptures | SHLOKA Creator{% endblock %}
+{% block admin_content %}
+<div class="admin-title">Scriptures</div>
+<div class="admin-sub">Manage scriptures and chapters.</div>
+
+<div class="upload-section" style="margin-bottom:28px;">
+  <div class="upload-section-title">Add New Scripture</div>
+  <form method="post">
+    <div class="form-row-3">
+      <div class="form-group">
+        <label class="form-label">Name *</label>
+        <input class="form-input" type="text" name="name" placeholder="e.g. Vishnu Sahasranama" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Icon (emoji)</label>
+        <input class="form-input" type="text" name="icon" placeholder="&#128591;" maxlength="4">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Accent Color</label>
+        <input class="form-input" type="color" name="color_accent" value="#C8956C">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea class="form-input form-textarea" name="description" style="min-height:60px;" placeholder="Brief description..."></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">+ Add Scripture</button>
+  </form>
+</div>
+
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Scripture</th><th>Shlokas</th><th>Chapters</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for cat in categories %}
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:3px;height:28px;border-radius:2px;background:{{ cat.color_accent }};flex-shrink:0;"></div>
+            <div>
+              <div style="font-family:var(--font-d);font-size:15px;color:var(--t1);">{{ cat.icon }} {{ cat.name }}</div>
+              <div style="font-size:11px;color:var(--t3);">/{{ cat.slug }}</div>
+            </div>
+          </div>
+        </td>
+        <td>{{ cat.total_shlokas }}</td>
+        <td>{{ cat.total_chapters }}</td>
+        <td>
+          <a href="{{ url_for('category', slug=cat.slug) }}" class="btn btn-ghost btn-sm">View</a>
+          <a href="{{ url_for('admin_chapters', cid=cat.id) }}" class="btn btn-ghost btn-sm">Chapters</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

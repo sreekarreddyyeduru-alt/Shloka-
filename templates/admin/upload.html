@@ -1,0 +1,202 @@
+{% extends "admin/base.html" %}
+{% block title %}{% if editing %}Edit Shloka{% else %}Upload Shloka{% endif %} | SHLOKA Creator{% endblock %}
+
+{% block admin_content %}
+<div class="admin-title">{% if editing %}Edit Shloka{% else %}Upload New Shloka{% endif %}</div>
+<div class="admin-sub">{% if editing %}Update the shloka details below.{% else %}Add a new shloka to your library.{% endif %}</div>
+
+<form method="post" enctype="multipart/form-data">
+
+  <div class="upload-section">
+    <div class="upload-section-title">{% if editing %}Video{% else %}Step 1 &mdash; Video File{% endif %}</div>
+    {% if editing and shloka.video_filename %}
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--t3);margin-bottom:8px;">Current: <code style="color:var(--brand);">{{ shloka.video_filename }}</code></div>
+      <video controls preload="metadata" style="width:100%;max-width:480px;border-radius:var(--r8);background:#000;"
+             src="{{ url_for('serve_video', fn=shloka.video_filename) }}"></video>
+      <div style="font-size:12px;color:var(--t3);margin-top:8px;">Upload a new file to replace.</div>
+    </div>
+    {% elif not editing %}
+    <div class="dropzone" onclick="document.getElementById('video-input').click()">
+      <div class="dropzone-icon">&#127916;</div>
+      <h3>Drop your video here</h3>
+      <p>MP4, MOV, WebM, AVI &mdash; max 500 MB</p>
+    </div>
+    {% endif %}
+    <div class="form-group" style="margin-top:14px;">
+      <label class="form-label">{% if editing %}Replace Video{% else %}Select Video File{% endif %}</label>
+      <input id="video-input" class="form-input" type="file" name="video" accept=".mp4,.mov,.webm,.avi,.mkv" onchange="showFile(this)">
+      <div id="file-name" style="font-size:12px;color:var(--t3);margin-top:5px;"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Thumbnail Image (JPG, PNG)</label>
+      {% if editing and shloka.thumbnail_filename %}
+      <div style="margin-bottom:8px;">
+        <img src="{{ url_for('serve_thumb', fn=shloka.thumbnail_filename) }}" alt="" style="height:60px;border-radius:6px;border:1px solid var(--border2);">
+      </div>
+      {% endif %}
+      <input class="form-input" type="file" name="thumbnail" accept=".jpg,.jpeg,.png,.webp">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Duration (seconds)</label>
+      <input class="form-input" type="number" name="duration_seconds"
+             value="{{ shloka.duration_seconds if editing else 0 }}"
+             placeholder="e.g. 272 for 4:32" style="max-width:180px;">
+    </div>
+  </div>
+
+  <div class="upload-section">
+    <div class="upload-section-title">{% if editing %}Shloka Details{% else %}Step 2 &mdash; Shloka Details{% endif %}</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Title *</label>
+        <input class="form-input" type="text" name="title" required
+               value="{{ shloka.title if editing else '' }}"
+               placeholder="e.g. Bhagavad Gita 2.47 — Nishkama Karma">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Shloka Number</label>
+        <input class="form-input" type="text" name="shloka_number"
+               value="{{ shloka.shloka_number if editing else '' }}"
+               placeholder="e.g. 2.47">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Scripture</label>
+        <select class="form-input form-select" name="category_id">
+          <option value="">Select...</option>
+          {% for c in cats %}
+          <option value="{{ c.id }}" {% if editing and shloka.category_id == c.id %}selected{% endif %}>{{ c.icon }} {{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Chapter</label>
+        <select class="form-input form-select" name="chapter_id">
+          <option value="">None</option>
+          {% for ch in chaps %}
+          <option value="{{ ch.id }}" {% if editing and shloka.chapter_id == ch.id %}selected{% endif %}>{{ ch.chapter_number }}. {{ ch.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Difficulty</label>
+      <div class="radio-group">
+        {% for val, lbl in [('beginner','Beginner'),('intermediate','Intermediate'),('advanced','Advanced')] %}
+        <label class="radio-option {% if (editing and shloka.difficulty_level == val) or (not editing and val == 'beginner') %}active{% endif %}">
+          <input type="radio" name="difficulty_level" value="{{ val }}"
+                 {% if (editing and shloka.difficulty_level == val) or (not editing and val == 'beginner') %}checked{% endif %}
+                 onchange="updateRadios(this)">
+          {{ lbl }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Sanskrit Text *</label>
+      <textarea class="form-input form-textarea dev" name="sanskrit_text" required
+                placeholder="&#2325;&#2352;&#2381;&#2350;&#2339;&#2381;&#2351;&#2375;&#2357;&#2366;&#2343;&#2367;&#2325;&#2366;&#2352;&#2360;&#2381;&#2340;&#2375;...">{{ shloka.sanskrit_text if editing else '' }}</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Transliteration</label>
+      <textarea class="form-input form-textarea" name="transliteration"
+                placeholder="karma&#7751;y ev&#257;dhik&#257;ras te...">{{ shloka.transliteration if editing else '' }}</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">English Translation</label>
+      <textarea class="form-input form-textarea" name="translation_english"
+                placeholder="You have a right to perform your duties...">{{ shloka.translation_english if editing else '' }}</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Commentary</label>
+      <textarea class="form-input form-textarea" name="commentary" style="min-height:120px;"
+                placeholder="Extended explanation for learners...">{{ shloka.commentary if editing else '' }}</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tags (comma-separated)</label>
+      <input class="form-input" type="text" name="tags"
+             value="{{ shloka.tags if editing else '' }}"
+             placeholder="karma, dharma, yoga, chapter-2">
+    </div>
+  </div>
+
+  <div class="upload-section">
+    <div class="upload-section-title">Publish Settings</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <div class="radio-group">
+          <label class="radio-option {% if editing and not shloka.is_published %}active{% elif not editing %}active{% endif %}">
+            <input type="radio" name="publish" value="0"
+                   {% if editing and not shloka.is_published %}checked{% elif not editing %}checked{% endif %}
+                   onchange="updateRadios(this)">
+            Save as Draft
+          </label>
+          <label class="radio-option {% if editing and shloka.is_published %}active{% endif %}">
+            <input type="radio" name="publish" value="1"
+                   {% if editing and shloka.is_published %}checked{% endif %}
+                   onchange="updateRadios(this)">
+            Publish Now
+          </label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Featured on Homepage?</label>
+        <div class="radio-group">
+          <label class="radio-option {% if editing and shloka.is_featured %}active{% endif %}" id="feat-opt">
+            <input type="checkbox" name="featured" value="1"
+                   {% if editing and shloka.is_featured %}checked{% endif %}
+                   onchange="this.closest('.radio-option').classList.toggle('active', this.checked)">
+            Set as Featured
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="form-sticky">
+      <a href="{{ url_for('admin_shlokas') }}" class="btn btn-ghost">Cancel</a>
+      {% if editing %}
+      <form method="post" action="{{ url_for('admin_delete', sid=shloka.id) }}"
+            onsubmit="return confirm('Permanently delete this shloka?')" style="margin-left:auto;">
+        <button type="submit" class="btn btn-danger">Delete</button>
+      </form>
+      {% endif %}
+      <button type="submit" class="btn btn-primary" {% if not editing %}style="margin-left:auto"{% endif %}>
+        {% if editing %}Save Changes{% else %}Save Shloka{% endif %}
+      </button>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showFile(input) {
+  var el = document.getElementById('file-name');
+  if (input.files[0]) {
+    var mb = (input.files[0].size / 1024 / 1024).toFixed(1);
+    el.textContent = input.files[0].name + ' (' + mb + ' MB)';
+  }
+}
+function updateRadios(inp) {
+  var group = inp.closest('.radio-group');
+  group.querySelectorAll('.radio-option').forEach(function(o) {
+    var i = o.querySelector('input[type="radio"]');
+    if (i) o.classList.toggle('active', i.checked);
+  });
+}
+var dz = document.querySelector('.dropzone');
+if (dz) {
+  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.style.borderColor='var(--brand)'; });
+  dz.addEventListener('dragleave', function() { dz.style.borderColor=''; });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault(); dz.style.borderColor='';
+    if (e.dataTransfer.files.length) {
+      document.getElementById('video-input').files = e.dataTransfer.files;
+      showFile(document.getElementById('video-input'));
+    }
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "admin/base.html" %}
+{% block title %}All Shlokas | SHLOKA Creator{% endblock %}
+{% block admin_content %}
+<div class="admin-title">All Shlokas</div>
+<div class="admin-sub">{{ shlokas|length }} total &middot; {{ shlokas|selectattr('is_published')|list|length }} published</div>
+<div style="display:flex;gap:10px;margin-bottom:18px;align-items:center;flex-wrap:wrap;">
+  <a href="{{ url_for('admin_upload') }}" class="btn btn-primary btn-sm">+ Upload New</a>
+  <input class="form-input" type="text" id="filter-q" placeholder="Filter by title..."
+         oninput="filterRows()" style="max-width:220px;">
+</div>
+<div class="data-table-wrap">
+  <table class="data-table" id="shlokas-tbl">
+    <thead><tr><th>Title</th><th>Scripture</th><th>Status</th><th>Views</th><th>Difficulty</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for s in shlokas %}
+      <tr data-title="{{ s.title|lower }}">
+        <td>
+          <div style="font-family:var(--font-d);font-size:14px;color:var(--t1);">{{ s.title }}</div>
+          <div style="font-size:11px;color:var(--t3);">{{ s.shloka_number }}</div>
+        </td>
+        <td style="color:var(--t2);">
+          {% if s.category %}<span style="color:{{ s.category.color_accent }};">{{ s.category.icon }}</span> {{ s.category.name }}{% else %}—{% endif %}
+        </td>
+        <td>
+          <span class="{% if s.is_published %}status-pub{% else %}status-draft{% endif %}">
+            {% if s.is_published %}Published{% else %}Draft{% endif %}
+          </span>
+          {% if s.is_featured %}<span class="status-feat" style="margin-left:4px;">Featured</span>{% endif %}
+        </td>
+        <td>{{ s.view_count }}</td>
+        <td><span class="chip chip-{{ s.difficulty_level }}" style="font-size:10px;">{{ s.difficulty_level.capitalize() }}</span></td>
+        <td>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <a href="{{ url_for('watch', slug=s.slug) }}" class="btn btn-ghost btn-sm">View</a>
+            <a href="{{ url_for('admin_edit', sid=s.id) }}" class="btn btn-ghost btn-sm">Edit</a>
+            <form method="post" action="{{ url_for('admin_toggle', sid=s.id) }}" style="display:inline;">
+              <button type="submit" class="btn btn-ghost btn-sm">{% if s.is_published %}Unpublish{% else %}Publish{% endif %}</button>
+            </form>
+            <form method="post" action="{{ url_for('admin_delete', sid=s.id) }}"
+                  onsubmit="return confirm('Delete this shloka?')" style="display:inline;">
+              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function filterRows() {
+  var q = document.getElementById('filter-q').value.toLowerCase();
+  document.querySelectorAll('#shlokas-tbl tbody tr').forEach(function(row) {
+    row.style.display = row.dataset.title.includes(q) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

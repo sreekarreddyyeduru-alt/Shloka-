@@ -1,0 +1,19 @@
+<a href="{{ url_for('watch', slug=s.slug) }}" class="shloka-card">
+  <div class="shloka-thumb" style="background:{{ s.category.color_bg if s.category else '#111' }};">
+    {% if s.thumbnail_filename %}
+    <img src="{{ url_for('serve_thumb', fn=s.thumbnail_filename) }}" alt="{{ s.title }}">
+    {% else %}
+    <div class="shloka-thumb-om" style="color:{{ s.category.color_accent if s.category else '#C8956C' }};">&#2384;</div>
+    {% endif %}
+    <div class="play-overlay"><div class="play-circle">&#9654;</div></div>
+    <div class="shloka-dur">{{ s.duration_str() }}</div>
+  </div>
+  <div class="shloka-info">
+    <div class="shloka-num">{{ s.shloka_number }}{% if s.category %} &middot; {{ s.category.name }}{% endif %}</div>
+    <div class="shloka-title">{{ s.title }}</div>
+    <div class="shloka-meta">
+      <span>{{ s.view_count }} views</span>
+      <span class="chip chip-{{ s.difficulty_level }}" style="font-size:10px;">{{ s.difficulty_level.capitalize() }}</span>
+    </div>
+  </div>
+</a>

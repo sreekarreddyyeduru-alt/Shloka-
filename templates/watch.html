@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+{% block title %}{{ shloka.title }} | SHLOKA{% endblock %}
+
+{% block content %}
+<div class="watch-layout">
+  <div class="watch-main">
+
+    <div class="breadcrumb">
+      <a href="{{ url_for('index') }}">Home</a>
+      {% if shloka.category %} &rsaquo; <a href="{{ url_for('category', slug=shloka.category.slug) }}">{{ shloka.category.name }}</a>{% endif %}
+      {% if shloka.chapter %} &rsaquo; <span style="color:var(--t2);">{{ shloka.chapter.title }}</span>{% endif %}
+      &rsaquo; <span>{{ shloka.shloka_number }}</span>
+    </div>
+
+    <div class="video-wrap">
+      {% if shloka.video_filename %}
+      <video id="main-video" controls preload="metadata"
+        src="{{ url_for('serve_video', fn=shloka.video_filename) }}"
+        {% if shloka.thumbnail_filename %}poster="{{ url_for('serve_thumb', fn=shloka.thumbnail_filename) }}"{% endif %}>
+      </video>
+      {% else %}
+      <div class="video-no-video">
+        <div class="video-no-video-text">{{ shloka.sanskrit_text }}</div>
+        <p style="font-size:13px;color:var(--t3);margin-top:8px;">No video uploaded yet.</p>
+        {% if current_user.is_authenticated and current_user.is_admin %}
+        <a href="{{ url_for('admin_edit', sid=shloka.id) }}" class="btn btn-ghost btn-sm" style="margin-top:12px;">Upload Video</a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    {% if current_user.is_authenticated %}
+    <div class="watch-prog-bar">
+      <div class="watch-prog-fill" id="prog-fill" style="width:{{ user_progress.watch_percent if user_progress else 0 }}%;"></div>
+    </div>
+    {% endif %}
+
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+      {% if shloka.category %}
+      <span class="chip" style="background:{{ shloka.category.color_bg }};color:{{ shloka.category.color_accent }};">
+        {{ shloka.category.icon }} {{ shloka.category.name }}
+      </span>
+      {% endif %}
+      <span class="chip chip-{{ shloka.difficulty_level }}">{{ shloka.difficulty_level.capitalize() }}</span>
+      <span style="font-size:12px;color:var(--t3);">{{ shloka.view_count }} views &middot; {{ shloka.duration_str() }}</span>
+      {% if user_progress and user_progress.is_completed %}
+      <span style="font-size:12px;color:var(--ok);font-weight:600;">&#10003; Completed</span>
+      {% endif %}
+    </div>
+
+    <h1 class="watch-title">{{ shloka.title }}</h1>
+
+    <div class="reactions">
+      {% for rtype, emoji, label in [('namaste','&#128591;','Namaste'),('love','&#10084;','Love'),('enlightened','&#129466;','Enlightened'),('inspiring','&#10024;','Inspiring')] %}
+      <button class="reaction-btn {% if user_reaction and user_reaction.reaction_type == rtype %}active{% endif %}"
+              data-type="{{ rtype }}" onclick="doReact('{{ rtype }}', {{ shloka.id }})">
+        {{ emoji }} <span id="r-{{ rtype }}">{{ reactions[rtype] }}</span>
+      </button>
+      {% endfor %}
+      <button class="action-btn {% if user_bookmarked %}bookmarked{% endif %}"
+              id="bm-btn" onclick="doBookmark({{ shloka.id }})">
+        {% if user_bookmarked %}Saved{% else %}Save{% endif %}
+      </button>
+      <button class="action-btn" onclick="copyLink(this)">Share</button>
+      {% if current_user.is_authenticated and current_user.is_admin %}
+      <a href="{{ url_for('admin_edit', sid=shloka.id) }}" class="action-btn" style="margin-left:auto;">Edit</a>
+      {% endif %}
+    </div>
+
+    <div class="info-block">
+      <div class="info-label">
+        <span>Sanskrit</span>
+        <span class="info-label-copy" onclick="copyText(this, `{{ shloka.sanskrit_text|replace('`','\\`') }}`)">Copy</span>
+      </div>
+      <div class="san-text">{{ shloka.sanskrit_text }}</div>
+    </div>
+
+    {% if shloka.transliteration %}
+    <div class="info-block">
+      <div class="info-label">
+        <span>Transliteration</span>
+        <span class="info-label-copy" onclick="copyText(this, `{{ shloka.transliteration|replace('`','\\`') }}`)">Copy</span>
+      </div>
+      <div class="tr-text">{{ shloka.transliteration }}</div>
+    </div>
+    {% endif %}
+
+    {% set wbw = shloka.get_word_by_word() %}
+    {% if wbw %}
+    <div class="info-block">
+      <div class="info-label"><span>Word by Word</span></div>
+      <table class="word-table">
+        <thead><tr><th>Sanskrit</th><th>Transliteration</th><th>Meaning</th></tr></thead>
+        <tbody>
+          {% for w in wbw %}
+          <tr>
+            <td class="word-san">{{ w.word }}</td>
+            <td style="font-style:italic;color:var(--t2);">{{ w.translit }}</td>
+            <td>{{ w.meaning }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if shloka.translation_english %}
+    <div class="info-block">
+      <div class="info-label"><span>Meaning</span></div>
+      <div class="trans-card">{{ shloka.translation_english }}</div>
+    </div>
+    {% endif %}
+
+    {% if shloka.commentary %}
+    <div class="info-block">
+      <div class="info-label"><span>Commentary</span></div>
+      <button class="comm-toggle" id="comm-btn" onclick="toggleComm()">&#9658; Read Commentary</button>
+      <div class="comm-body" id="comm-body">{{ shloka.commentary }}</div>
+    </div>
+    {% endif %}
+
+    {% if shloka.get_tags() %}
+    <div class="info-block" style="padding:16px 0 0;">
+      <div class="info-label"><span>Tags</span></div>
+      <div class="tags-row">
+        {% for tag in shloka.get_tags() %}
+        <a href="{{ url_for('search', q=tag) }}" class="tag">{{ tag }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if related %}
+    <div style="margin-top:28px;padding:18px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r12);display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:4px;">Up next</div>
+        <div style="font-family:var(--font-d);font-size:16px;font-weight:600;">{{ related[0].title }}</div>
+      </div>
+      <a href="{{ url_for('watch', slug=related[0].slug) }}" class="btn btn-primary btn-sm" style="flex-shrink:0;">Next &rarr;</a>
+    </div>
+    {% endif %}
+
+    <div class="comments-section">
+      <div style="font-family:var(--font-d);font-size:24px;font-weight:700;margin-bottom:20px;">
+        Comments <span style="font-size:15px;color:var(--t3);font-family:var(--font-b);font-weight:400;">({{ comments|length }})</span>
+      </div>
+
+      {% if current_user.is_authenticated %}
+      <div class="comment-input-row">
+        <div class="comment-avatar">{{ current_user.get_initials() }}</div>
+        <div style="flex:1;">
+          <textarea class="form-input form-textarea" id="comment-input" rows="3"
+                    placeholder="Share your reflections..." style="height:72px;"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn btn-primary btn-sm" onclick="postComment({{ shloka.id }})">Post Comment</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('comment-input').value=''">Clear</button>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r8);padding:16px;margin-bottom:24px;font-size:13px;color:var(--t3);">
+        <a href="{{ url_for('signin') }}" style="color:var(--brand);">Sign in</a> to share your reflections.
+      </div>
+      {% endif %}
+
+      <div id="comments-list">
+        {% for c in comments %}
+        <div class="comment" id="comment-{{ c.id }}">
+          <div class="comment-avatar" style="background:{% if c.author.is_admin %}var(--bdark){% else %}var(--bg4){% endif %};color:{% if c.author.is_admin %}var(--brand){% else %}var(--t2){% endif %};">
+            {{ c.author.get_initials() }}
+          </div>
+          <div class="comment-body">
+            <div class="comment-name">
+              {{ c.author.display_name or c.author.username }}
+              {% if c.author.is_admin %}<span class="creator-badge">CREATOR</span>{% endif %}
+              {% if c.is_pinned %}<span class="pinned-badge">Pinned</span>{% endif %}
+            </div>
+            <div class="comment-text">{{ c.content }}</div>
+            <div style="display:flex;align-items:center;gap:14px;margin-top:6px;">
+              <span class="comment-time">{{ c.created_at.strftime('%b %d, %Y') }}</span>
+              {% if current_user.is_authenticated %}
+              <div class="comment-actions">
+                {% if current_user.is_admin %}
+                <form method="post" action="{{ url_for('admin_pin', cid=c.id) }}" style="display:inline;">
+                  <button type="submit" class="comment-action-btn">{% if c.is_pinned %}Unpin{% else %}Pin{% endif %}</button>
+                </form>
+                {% endif %}
+                {% if current_user.is_admin or c.user_id == current_user.id %}
+                <form method="post" action="{{ url_for('delete_comment', cid=c.id) }}" style="display:inline;"
+                      onsubmit="return confirm('Delete this comment?')">
+                  <button type="submit" class="comment-action-btn">Delete</button>
+                </form>
+                {% endif %}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        {% if not comments %}
+        <div style="text-align:center;padding:32px;color:var(--t3);">
+          <div style="font-size:32px;margin-bottom:10px;">&#128172;</div>
+          <div>Be the first to share your reflection.</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  <div class="watch-sidebar">
+    <div class="sidebar-label">Up Next</div>
+    {% if shloka.chapter %}
+    <div style="font-size:11px;color:var(--t3);margin-bottom:14px;">{{ shloka.chapter.title }}</div>
+    {% endif %}
+    {% for r in related %}
+    <a href="{{ url_for('watch', slug=r.slug) }}" class="related-item {% if r.id == shloka.id %}now-playing{% endif %}">
+      <div class="related-thumb" style="background:{{ r.category.color_bg if r.category else '#111' }};">
+        {% if r.thumbnail_filename %}
+        <img src="{{ url_for('serve_thumb', fn=r.thumbnail_filename) }}" alt="">
+        {% else %}
+        <span style="font-family:var(--font-s);font-size:14px;color:{{ r.category.color_accent if r.category else '#C8956C' }};opacity:.45;">&#2384;</span>
+        {% endif %}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div class="related-title">{{ r.title }}</div>
+        <div class="related-meta">{{ r.duration_str() }} &middot; {{ r.shloka_number }}</div>
+        {% if r.id == shloka.id %}<div style="font-size:10px;color:var(--brand);font-weight:600;margin-top:3px;">Now Playing</div>{% endif %}
+      </div>
+    </a>
+    {% else %}
+    <p style="font-size:13px;color:var(--t3);">No related shlokas.</p>
+    {% endfor %}
+    {% if shloka.category %}
+    <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+      <a href="{{ url_for('category', slug=shloka.category.slug) }}" style="font-size:12px;color:var(--brand);">
+        Browse all {{ shloka.category.name }} &rarr;
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function doReact(type, id) {
+  {% if not current_user.is_authenticated %}
+  window.location = '{{ url_for("signin") }}?next=' + encodeURIComponent(window.location.pathname);
+  return;
+  {% endif %}
+  var resp = await fetch('/api/react/' + id, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({type: type})
+  });
+  var data = await resp.json();
+  if (data.ok) {
+    for (var rt in data.counts) {
+      var el = document.getElementById('r-' + rt);
+      if (el) el.textContent = data.counts[rt];
+    }
+    document.querySelectorAll('.reaction-btn').forEach(function(b) { b.classList.remove('active'); });
+    if (data.active) {
+      var btn = document.querySelector('[data-type="' + type + '"]');
+      if (btn) btn.classList.add('active');
+    }
+  }
+}
+
+async function doBookmark(id) {
+  {% if not current_user.is_authenticated %}
+  window.location = '{{ url_for("signin") }}?next=' + encodeURIComponent(window.location.pathname);
+  return;
+  {% endif %}
+  var resp = await fetch('/api/bookmark/' + id, {method:'POST'});
+  var data = await resp.json();
+  if (data.ok) {
+    var btn = document.getElementById('bm-btn');
+    btn.textContent = data.bookmarked ? 'Saved' : 'Save';
+    btn.classList.toggle('bookmarked', data.bookmarked);
+    showToast(data.bookmarked ? 'Bookmarked!' : 'Bookmark removed');
+  }
+}
+
+function copyLink(btn) {
+  navigator.clipboard.writeText(window.location.href);
+  var orig = btn.textContent;
+  btn.textContent = 'Copied!';
+  setTimeout(function() { btn.textContent = orig; }, 2000);
+}
+
+function copyText(el, text) {
+  navigator.clipboard.writeText(text);
+  var orig = el.textContent;
+  el.textContent = 'Copied!';
+  setTimeout(function() { el.textContent = orig; }, 2000);
+}
+
+function toggleComm() {
+  var body = document.getElementById('comm-body');
+  var btn  = document.getElementById('comm-btn');
+  body.classList.toggle('open');
+  btn.textContent = body.classList.contains('open') ? '&#9660; Hide Commentary' : '&#9658; Read Commentary';
+}
+
+async function postComment(id) {
+  var input = document.getElementById('comment-input');
+  var content = input.value.trim();
+  if (!content) { input.focus(); return; }
+  var btn = event.target;
+  btn.disabled = true; btn.textContent = 'Posting...';
+  var resp = await fetch('/api/comment/' + id, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({content: content})
+  });
+  var data = await resp.json();
+  btn.disabled = false; btn.textContent = 'Post Comment';
+  if (data.ok) {
+    input.value = '';
+    var list = document.getElementById('comments-list');
+    var empty = list.querySelector('[style*="text-align:center"]');
+    if (empty) empty.remove();
+    var bg = data.is_admin ? 'var(--bdark)' : 'var(--bg4)';
+    var tc = data.is_admin ? 'var(--brand)' : 'var(--t2)';
+    var div = document.createElement('div');
+    div.className = 'comment';
+    div.innerHTML = '<div class="comment-avatar" style="background:' + bg + ';color:' + tc + ';">' + data.initials + '</div>'
+      + '<div class="comment-body"><div class="comment-name">' + data.author
+      + (data.is_admin ? '<span class="creator-badge">CREATOR</span>' : '')
+      + '</div><div class="comment-text">' + data.content.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>'
+      + '<div class="comment-time">Just now</div></div>';
+    list.prepend(div);
+    showToast('Comment posted!');
+  }
+}
+
+{% if current_user.is_authenticated %}
+var video = document.getElementById('main-video');
+var progFill = document.getElementById('prog-fill');
+var lastPct = {{ user_progress.watch_percent if user_progress else 0 }};
+var completed = {{ 'true' if user_progress and user_progress.is_completed else 'false' }};
+
+if (video) {
+  video.addEventListener('timeupdate', function() {
+    if (!video.duration) return;
+    var pct = Math.floor((video.currentTime / video.duration) * 100);
+    if (progFill) progFill.style.width = Math.max(pct, lastPct) + '%';
+    if (pct >= lastPct + 10 || pct === 100) {
+      lastPct = pct;
+      fetch('/api/progress/{{ shloka.id }}', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({percent: pct})
+      }).then(function(r) { return r.json(); }).then(function(d) {
+        if (d.completed && !completed) {
+          completed = true;
+          showToast('Shloka completed!');
+        }
+      });
+    }
+  });
+}
+{% endif %}
+</script>
+{% endblock %}

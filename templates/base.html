@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}SHLOKA{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&family=Noto+Sans+Devanagari:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+{% block head %}{% endblock %}
+</head>
+<body>
+
+<nav class="navbar" id="navbar">
+  <a href="{{ url_for('index') }}" class="navbar-logo">S<span>hloka</span></a>
+
+  <form class="navbar-search" action="{{ url_for('search') }}" method="get">
+    <span class="search-icon">&#9906;</span>
+    <input type="text" name="q" placeholder="Search shlokas, scriptures..."
+           value="{{ request.args.get('q','') }}" autocomplete="off">
+  </form>
+
+  <div class="navbar-right">
+    <div class="nav-cats">
+      {% for cat in categories %}
+      <a href="{{ url_for('category', slug=cat.slug) }}" class="nav-link">{{ cat.name }}</a>
+      {% endfor %}
+    </div>
+
+    {% if current_user.is_authenticated %}
+      {% if current_user.is_admin %}
+      <a href="{{ url_for('admin_dashboard') }}" class="btn btn-ghost btn-sm">Creator</a>
+      {% endif %}
+      <div class="nav-avatar-wrap">
+        <div class="nav-avatar" id="nav-avatar-btn">{{ current_user.get_initials() }}</div>
+        <div class="nav-dropdown" id="nav-dropdown">
+          <div class="nav-dropdown-header">
+            <strong>{{ current_user.display_name or current_user.username }}</strong>
+            <span>{{ current_user.email }}</span>
+          </div>
+          <div class="nav-dropdown-divider"></div>
+          <a href="{{ url_for('profile') }}">My Journey</a>
+          {% if current_user.is_admin %}
+          <a href="{{ url_for('admin_dashboard') }}">Creator Dashboard</a>
+          {% endif %}
+          <div class="nav-dropdown-divider"></div>
+          <a href="{{ url_for('signout') }}">Sign Out</a>
+        </div>
+      </div>
+    {% else %}
+      <a href="{{ url_for('signin') }}" class="btn btn-ghost btn-sm">Sign In</a>
+      <a href="{{ url_for('signup') }}" class="btn btn-primary btn-sm">Get Started</a>
+    {% endif %}
+
+    <button class="hamburger" id="hamburger-btn" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobile-menu">
+  <div class="mobile-menu-inner">
+    <p class="mobile-menu-label">Scriptures</p>
+    {% for cat in categories %}
+    <a href="{{ url_for('category', slug=cat.slug) }}">{{ cat.icon }} {{ cat.name }}</a>
+    {% endfor %}
+    <p class="mobile-menu-label">Account</p>
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('profile') }}">My Journey</a>
+      {% if current_user.is_admin %}<a href="{{ url_for('admin_dashboard') }}">Creator Dashboard</a>{% endif %}
+      <a href="{{ url_for('signout') }}">Sign Out</a>
+    {% else %}
+      <a href="{{ url_for('signin') }}">Sign In</a>
+      <a href="{{ url_for('signup') }}">Get Started</a>
+    {% endif %}
+  </div>
+</div>
+<div class="mobile-overlay" id="mobile-overlay"></div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="flash-container">
+  {% for cat, msg in messages %}
+  <div class="flash flash-{{ cat }}">
+    <span>{{ msg }}</span>
+    <button onclick="this.parentElement.remove()">x</button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<main>{% block content %}{% endblock %}</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo">Shloka</div>
+      <div class="footer-tag">Ancient words. Timeless practice.</div>
+    </div>
+    <div class="footer-links">
+      {% for cat in categories %}
+      <a href="{{ url_for('category', slug=cat.slug) }}">{{ cat.name }}</a>
+      {% endfor %}
+    </div>
+    <div class="footer-copy">2025 SHLOKA</div>
+  </div>
+</footer>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// Avatar dropdown
+document.getElementById('nav-avatar-btn') && document.getElementById('nav-avatar-btn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  document.getElementById('nav-dropdown').classList.toggle('open');
+});
+document.addEventListener('click', function() {
+  var d = document.getElementById('nav-dropdown');
+  if (d) d.classList.remove('open');
+});
+
+// Mobile menu
+document.getElementById('hamburger-btn').addEventListener('click', function() {
+  var m = document.getElementById('mobile-menu');
+  var o = document.getElementById('mobile-overlay');
+  var h = document.getElementById('hamburger-btn');
+  var open = m.classList.toggle('open');
+  o.classList.toggle('open', open);
+  h.classList.toggle('open', open);
+  document.body.style.overflow = open ? 'hidden' : '';
+});
+document.getElementById('mobile-overlay').addEventListener('click', function() {
+  document.getElementById('mobile-menu').classList.remove('open');
+  document.getElementById('mobile-overlay').classList.remove('open');
+  document.getElementById('hamburger-btn').classList.remove('open');
+  document.body.style.overflow = '';
+});
+
+// Scroll effect
+window.addEventListener('scroll', function() {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// Flash dismiss
+setTimeout(function() {
+  var flashes = document.querySelectorAll('.flash');
+  flashes.forEach(function(f) { f.style.opacity = '0'; });
+  setTimeout(function() {
+    flashes.forEach(function(f) { f.remove(); });
+  }, 400);
+}, 4000);
+
+// Global toast
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

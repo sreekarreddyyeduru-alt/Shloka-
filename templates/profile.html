@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}My Journey | SHLOKA{% endblock %}
+{% block content %}
+<div class="profile-header">
+  <div class="profile-avatar">{{ current_user.get_initials() }}</div>
+  <div class="profile-name">{{ current_user.display_name or current_user.username }}</div>
+  <div class="profile-handle">@{{ current_user.username }} &middot; Member since {{ current_user.created_at.strftime('%b %Y') }}</div>
+  <div class="profile-stats">
+    <div><div class="profile-stat-val">{{ completed_count }}</div><div class="profile-stat-label">Completed</div></div>
+    <div><div class="profile-stat-val">{{ prog_entries|length }}</div><div class="profile-stat-label">Watched</div></div>
+    <div><div class="profile-stat-val">{{ bookmarks|length }}</div><div class="profile-stat-label">Bookmarks</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Learning Progress</div>
+  <div class="section-sub">Your journey across scriptures</div>
+  {% if cat_progress %}
+    {% for cat in categories %}
+    {% if cat_progress.get(cat.id) %}
+    {% set cp = cat_progress[cat.id] %}
+    {% set pct = ((cp.done / cp.total) * 100)|int if cp.total > 0 else 0 %}
+    <div class="prog-card">
+      <div class="prog-card-head">
+        <div class="prog-dot" style="background:{{ cat.color_accent }};"></div>
+        <h3>{{ cat.icon }} {{ cat.name }}</h3>
+        <a href="{{ url_for('category', slug=cat.slug) }}" class="btn btn-ghost btn-sm">Continue</a>
+      </div>
+      <div class="prog-bar-bg"><div class="prog-bar-fill" style="background:{{ cat.color_accent }};width:{{ pct }}%;"></div></div>
+      <div class="prog-meta">{{ cp.done }} / {{ cp.total }} shlokas &middot; {{ pct }}%</div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  {% else %}
+  <div style="padding:32px;text-align:center;color:var(--t3);background:var(--bg2);border:1px solid var(--border);border-radius:var(--r12);">
+    <div style="font-size:36px;margin-bottom:12px;">&#127807;</div>
+    <p>You haven't watched any shlokas yet.</p>
+    <a href="{{ url_for('index') }}" class="btn btn-primary" style="margin-top:14px;">Start Learning</a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="section" style="padding-top:0;">
+  <div class="section-title">Achievements</div>
+  <div class="section-sub">Badges earned on your journey</div>
+  <div class="ach-grid">
+    {% for icon, name, earned in [
+      ('&#127807;','First Shloka', completed_count >= 1),
+      ('&#128293;','3-Day Streak', False),
+      ('&#128293;&#128293;','7-Day Streak', False),
+      ('&#128218;','Chapter Done', False),
+      ('&#127942;','Scripture Master', False),
+      ('&#128175;','Century', completed_count >= 100),
+      ('&#11088;','Deep Diver', False),
+      ('&#128204;','Bookworm', bookmarks|length >= 10),
+      ('&#128172;','Conversationalist', False),
+      ('&#128591;','Devotee', False),
+    ] %}
+    <div class="ach {% if not earned %}locked{% endif %}">
+      <div class="ach-icon">{{ icon }}</div>
+      <div class="ach-name">{{ name }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% if bookmarks %}
+<div class="section" style="padding-top:0;">
+  <div class="section-title">Bookmarks</div>
+  <div class="section-sub">Shlokas you've saved</div>
+  <div class="shloka-row">
+    {% for bm in bookmarks %}{% set s = bm.shloka %}{% include "_shloka_card.html" %}{% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if prog_entries %}
+<div class="section" style="padding-top:0;">
+  <div class="section-title">Watch History</div>
+  <div class="data-table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Shloka</th><th>Scripture</th><th>Progress</th><th>Last Watched</th></tr></thead>
+      <tbody>
+        {% for p in prog_entries|sort(attribute='last_watched', reverse=True) %}
+        {% set s = p.shloka %}
+        <tr>
+          <td><a href="{{ url_for('watch', slug=s.slug) }}" style="color:var(--brand);font-family:var(--font-d);font-size:15px;">{{ s.title }}</a></td>
+          <td style="color:var(--t3);">{{ s.category.name if s.category else '—' }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="prog-bar-bg" style="width:80px;"><div class="prog-bar-fill" style="background:var(--brand);width:{{ p.watch_percent }}%;"></div></div>
+              <span style="font-size:11px;color:var(--t3);">{{ p.watch_percent }}%</span>
+              {% if p.is_completed %}<span style="color:var(--ok);font-size:11px;">&#10003;</span>{% endif %}
+            </div>
+          </td>
+          <td style="font-size:12px;color:var(--t3);">{{ p.last_watched.strftime('%b %d, %Y') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

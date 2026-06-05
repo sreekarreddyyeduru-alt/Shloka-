@@ -1,0 +1,47 @@
+{% extends "admin/base.html" %}
+{% block title %}Chapters | SHLOKA Creator{% endblock %}
+{% block admin_content %}
+<div style="margin-bottom:8px;"><a href="{{ url_for('admin_categories') }}" style="font-size:13px;color:var(--brand);">&larr; Scriptures</a></div>
+<div class="admin-title">{{ cat.icon }} {{ cat.name }} &mdash; Chapters</div>
+<div class="admin-sub">Manage chapters within this scripture.</div>
+
+<div class="upload-section" style="margin-bottom:24px;">
+  <div class="upload-section-title">Add New Chapter</div>
+  <form method="post">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Chapter Number</label>
+        <input class="form-input" type="number" name="chapter_number" value="{{ chapters|length + 1 }}" min="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Chapter Title *</label>
+        <input class="form-input" type="text" name="title" placeholder="e.g. Arjuna's Dilemma" required>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <input class="form-input" type="text" name="description" placeholder="Brief summary...">
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">+ Add Chapter</button>
+  </form>
+</div>
+
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead><tr><th>#</th><th>Title</th><th>Shlokas</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for ch in chapters %}
+      <tr>
+        <td style="color:var(--t3);">{{ ch.chapter_number }}</td>
+        <td style="font-family:var(--font-d);font-size:15px;">{{ ch.title }}</td>
+        <td>{{ ch.total_shlokas }}</td>
+        <td><a href="{{ url_for('category', slug=cat.slug) }}" class="btn btn-ghost btn-sm">View</a></td>
+      </tr>
+      {% endfor %}
+      {% if not chapters %}
+      <tr><td colspan="4" style="text-align:center;color:var(--t3);padding:24px;">No chapters yet.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

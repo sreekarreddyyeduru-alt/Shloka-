@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ cat.name }} | SHLOKA{% endblock %}
+
+{% block content %}
+<div class="cat-header">
+  <div class="cat-header-om">{{ cat.icon }}</div>
+  <div style="margin-bottom:12px;">
+    <span class="chip" style="background:{{ cat.color_bg }};color:{{ cat.color_accent }};">{{ cat.icon }} Scripture</span>
+  </div>
+  <h1>{{ cat.name }}</h1>
+  <div class="cat-accent-line" style="background:{{ cat.color_accent }};"></div>
+  <p class="cat-header-desc">{{ cat.description or '' }}</p>
+  <div class="cat-stats">
+    <span>{{ cat.total_chapters }} Chapters</span>
+    <span>&middot;</span>
+    <span>{{ cat.total_shlokas }} Shlokas</span>
+  </div>
+  {% if current_user.is_authenticated %}
+  {% set total_done = namespace(n=0) %}
+  {% set total_all = namespace(n=0) %}
+  {% for ch in chapters %}
+    {% if progress.get(ch.id) %}
+      {% set total_done.n = total_done.n + progress[ch.id].done %}
+      {% set total_all.n = total_all.n + progress[ch.id].total %}
+    {% endif %}
+  {% endfor %}
+  {% if total_all.n > 0 %}
+  <div style="margin-top:18px;max-width:400px;">
+    <div style="font-size:12px;color:var(--t3);margin-bottom:6px;">Your progress &middot; {{ total_done.n }} / {{ total_all.n }} shlokas</div>
+    <div class="prog-bar-bg">
+      <div class="prog-bar-fill" style="background:{{ cat.color_accent }};width:{{ ((total_done.n / total_all.n) * 100)|int }}%;"></div>
+    </div>
+  </div>
+  {% endif %}
+  {% endif %}
+</div>
+
+<div class="accordion">
+  {% if chapters %}
+    {% for ch in chapters %}
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc({{ loop.index0 }})">
+        <div class="acc-num" style="background:{{ cat.color_bg }};color:{{ cat.color_accent }};">{{ ch.chapter_number }}</div>
+        <div class="acc-title">{{ ch.title }}</div>
+        <div class="acc-meta">
+          {{ ch.total_shlokas }} shlokas
+          {% if current_user.is_authenticated and progress.get(ch.id) %}
+          &middot; {{ progress[ch.id].done }}/{{ progress[ch.id].total }} done
+          {% endif %}
+        </div>
+        <div class="acc-chev {% if loop.first %}open{% endif %}" id="chev-{{ loop.index0 }}">&#9660;</div>
+      </div>
+      <div class="acc-body {% if loop.first %}open{% endif %}" id="acc-{{ loop.index0 }}">
+        {% set pub_shlokas = ch.shlokas | selectattr('is_published') | list %}
+        {% if pub_shlokas %}
+        <div class="acc-grid">
+          {% for s in pub_shlokas %}{% include "_shloka_card.html" %}{% endfor %}
+        </div>
+        {% else %}
+        <p style="font-size:13px;color:var(--t3);padding:10px 0;">No shlokas in this chapter yet.</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+  <div style="padding:48px;text-align:center;color:var(--t3);">
+    <div style="font-size:40px;margin-bottom:14px;">&#128218;</div>
+    <p>No chapters added yet.</p>
+    {% if current_user.is_authenticated and current_user.is_admin %}
+    <a href="{{ url_for('admin_chapters', cid=cat.id) }}" class="btn btn-primary" style="margin-top:16px;">+ Add Chapter</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleAcc(i) {
+  var body = document.getElementById('acc-' + i);
+  var chev = document.getElementById('chev-' + i);
+  var open = body.classList.toggle('open');
+  chev.classList.toggle('open', open);
+}
+</script>
+{% endblock %}
